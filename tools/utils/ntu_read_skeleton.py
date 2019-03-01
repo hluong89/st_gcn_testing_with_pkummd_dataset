@@ -43,7 +43,7 @@ def read_skeleton(file):
 def read_xyz(file, max_body=2, num_joint=25):
     seq_info = read_skeleton(file)
     data = np.zeros((3, seq_info['numFrame'], num_joint, max_body))
-    for n, f in enumerate(seq_info['frameInfo']):
+    for n, f in enumerate(seq_info['frameInfo']): # frameInfo is the number of people
         for m, b in enumerate(f['bodyInfo']):
             for j, v in enumerate(b['jointInfo']):
                 if m < max_body and j < num_joint:
