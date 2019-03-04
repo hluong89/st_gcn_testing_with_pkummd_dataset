@@ -2,6 +2,7 @@ import os
 
 pku_label_directory = '../../../hien_data/PKUMMD/label/Train_Label_PKU_final/test/'
 pku_data_directory = '../../../hien_data/PKUMMD/data/PKU_Skeleton_Renew/test/'
+pku_converted_from_ntu_directory = '../../../hien_data/PKUMMD/data/PKU_Skeleton_Renew/test/skeleton/'
 
 # list all text file in the folder
 label_file_list = os.listdir(pku_label_directory)
@@ -11,6 +12,15 @@ print(data_file_list)
 
 number_of_joint = 25
 number_of_dimension = 3
+
+# convert action number from pku to action number in ntu
+# missing action2 1 and 38 in pku
+action_number_convert_to_ntu = {'2': 4, '3': 3, '4': 33, '5': 22, '6':10, '7':40, '8':1, '9':5, '10': 2, '11': 43,
+                                '12': 56, '13': 23, '14':58, '15':26, '16':27, '17':27, '18': 51, '19': 24, '20':28, '21': 53,
+                                '22': 6, '23': 29, '24':54, '25':31, '26':50, '27':52, '28': 20, '29': 25, '30':11, '31': 34,
+                                '32': 38, '33': 8, '34':9, '35':21, '36':19, '37':15, '39': 32, '40':13, '41': 7,
+                                '42': 46, '43': 45, '44': 44, '45': 47, '46': 30, '47': 49, '48': 14, '49': 18, '50': 37, '51': 12}
+
 
 # read a label file
 def read_label_data(label_filename):
@@ -22,14 +32,22 @@ def read_label_data(label_filename):
     with open(pku_label_directory + label_filename, 'r') as f:
         lines = [line.rstrip('\n') for line in f]
         # tesing with frist line only
-        print(lines[0])
-        values = lines[0].split(',')
-        for value in values:
-            print(value)
+        # print(lines[0])
+        # values = lines[0].split(',')
+        # for value in values:
+        #     print(value)
+        #
+        # # pass start_frame, end_frame, and action_number in this order to data file
+        # read_data_and_split_action(label_filename, values)
 
-        # pass start_frame, end_frame, and action_number in this order to data file
-        read_data_and_split_action(label_filename, values)
-
+        # testing with all lines in a label file
+        print(len(lines))
+        for i in range(len(lines)):
+            values = lines[i].split(',')
+            for value in values:
+                print(value)
+            # pass start_frame, end_frame, and action_number in this order to data file
+            read_data_and_split_action(label_filename, values)
 
 
 
@@ -46,6 +64,7 @@ def read_data_and_split_action(data_filename, values):
         data = lines[start_frame:end_frame+1]
         #print(data)
         split_action_from_video(data_filename, data, values)
+
 
 # write skeleton info for one person for one frame in the ntu format
 def write_one_skeleton_info_for_one_person(data_per_person):
@@ -64,16 +83,63 @@ def write_one_skeleton_info_for_one_person(data_per_person):
     #print(skeleton_per_one_person)
     return skeleton_per_one_person
 
+def change_pku_data_filename_into_ntu_filename_format(data_filename):
+    # change the name of the pku data into the format of ntu (e.g. S001C001P001R001A001.txt)
+    # From pkummd to ntu dataset
+    # pkummd: 0024-M.txt -> ntu: S024C001P001R001A001.txt
+    # S: the number of video ID, C: the L/M/R with L: 0, M: 1, R: 2 -> C001, A: action number
+
+    # data_filename_new = 'S' + file_name.split('.')[0].split('-')[1:4] + '_new.txt'
+    # data_filename_new = ''
+
+    # filename in pku: 0024-M.txt
+    # setup_id: convert from video_id from pku
+    setup_id = 'S' + data_filename.split('.')[0].split('-')[0][1:]  # 024
+
+    print('setup_id: ', setup_id)
+    # camera_id: convert from L/M/R from pku
+    view = data_filename.split('.')[0].split('-')[1]  # M
+    if view == 'L':
+        view_id = '0'
+    elif view == 'M':
+        view_id = '1'
+    else:
+        view_id = '2'
+    camera_id = 'C00' + view_id
+    print(camera_id)
+
+    fixed_term_in_filename = 'P001R001'
+    data_filename_new = setup_id + camera_id + fixed_term_in_filename
+    return data_filename_new
+
 def split_action_from_video (file_name, data, values):
     # this function slips actions from video based on the start_frame and end_frame and action_number in label file to
     # ensure that each label has one action only (that is the same format of nut dataset)
-    data_filename_new = file_name.split('.')[0] + '_new.txt'
-    with open(pku_data_directory + data_filename_new, 'w') as f_data_new:
-        f_data_new.writelines('%s\n' % i for i in data)
+
+    # change the name of the pku data into the format of ntu
+    data_filename = change_pku_data_filename_into_ntu_filename_format(file_name)
 
     # write data in the nut format
     # Assume that start_frame and end_frame in the label file starts from 1 as the author counts the action_class from 1
     action_number = values[0]
+
+    action_number = action_number_convert_to_ntu[action_number]
+    print('action: ', action_number, action_number_convert_to_ntu)
+
+    # to ensure that A001 always has 3 digits which is the same format of ntu
+    if int(action_number) < 10:
+        action_number = '0' + str(action_number)
+    # Note:
+    # 1. need to convert action number from pku to ntu <-
+    # 2. need to rearrange joint order
+
+    action_id = 'A0' + str(action_number)
+    print(action_id)
+
+    data_filename_new = data_filename + action_id + '.skeleton'
+    #print(data_filename_new)
+    #with open(pku_data_directory + data_filename_new, 'w') as f_data_new:
+    #    f_data_new.writelines('%s\n' % i for i in data)
 
     number_of_frame = len(data)
     print('number of frame: ', number_of_frame)
@@ -84,8 +150,8 @@ def split_action_from_video (file_name, data, values):
 
         data_first_person = temp[0:number_of_dimension*number_of_joint]
 
-        print('First person:')
-        print(data_first_person)
+        #print('First person:')
+        #print(data_first_person)
 
         data_second_person = temp[number_of_dimension*number_of_joint:len(temp)]
         #print(data_second_person)
@@ -98,16 +164,19 @@ def split_action_from_video (file_name, data, values):
 
         # split joint info
         skeleton_first_person = write_one_skeleton_info_for_one_person(data_first_person)
-        print(skeleton_first_person)
+        #print(skeleton_first_person)
 
 
         # write joint information in the format of ntu
-        data_filename_ntu_format = file_name.split('.')[0] + '_ntu_format.txt'
-        file_exist = os.path.isfile(pku_data_directory + data_filename_ntu_format)
+        data_filename_ntu_format = data_filename_new
+        #file_exist = os.path.isfile(pku_data_directory + data_filename_ntu_format)
+        file_exist = os.path.isfile(pku_converted_from_ntu_directory + data_filename_ntu_format)
+
         #mode = 'w' if file_exist == False else 'a'
         # print('file exist: ', file_exist)
 
-        with open(pku_data_directory + data_filename_ntu_format, 'a') as f_data_ntu:
+        #with open(pku_data_directory + data_filename_ntu_format, 'a') as f_data_ntu:
+        with open(pku_converted_from_ntu_directory + data_filename_ntu_format, 'a') as f_data_ntu:
             if file_exist == False:
                 f_data_ntu.writelines('%s\n' % number_of_frame)
             f_data_ntu.writelines('%s\n' % number_of_people)
@@ -121,8 +190,9 @@ def split_action_from_video (file_name, data, values):
                 f_data_ntu.writelines(skeleton_second_person)
 
 
-# read all label files
-read_label_data(label_file_list[0])
 
-#def change_pku_format_to_ntu_format():
-#change_pku_format_to_ntu_format()
+# read all label files
+#read_label_data(label_file_list[0])
+
+for i in range (len(label_file_list)):
+    read_label_data(label_file_list[i])
