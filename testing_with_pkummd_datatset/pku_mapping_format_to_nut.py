@@ -21,7 +21,6 @@ action_number_convert_to_ntu = {'2': 4, '3': 3, '4': 33, '5': 22, '6':10, '7':40
                                 '32': 38, '33': 8, '34':9, '35':21, '36':19, '37':15, '39': 32, '40':13, '41': 7,
                                 '42': 46, '43': 45, '44': 44, '45': 47, '46': 30, '47': 49, '48': 14, '49': 18, '50': 37, '51': 12}
 
-
 # read a label file
 def read_label_data(label_filename):
     # with open(pku_label_directory + label_filename , 'r') as f:
